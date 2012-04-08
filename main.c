@@ -51,6 +51,7 @@
 //------------------------------------------------------------------------------
 unsigned int txData;                        // UART internal variable for TX
 unsigned char rxBuffer;                     // Received UART character
+unsigned char buffer[8];					// Array of chars for output to led matrix
 
 //------------------------------------------------------------------------------
 // Function prototypes
@@ -58,6 +59,14 @@ unsigned char rxBuffer;                     // Received UART character
 void TimerA_UART_init(void);
 void TimerA_UART_tx(unsigned char byte);
 void TimerA_UART_print(char *string);
+//================new prototypes==============
+void delay(unsigned int);
+void pulseClock( void );
+void shiftOut(unsigned int );
+void enable(void);
+void disable(void);
+void setRows(unsigned int, unsigned int);
+void setDisplay(char) 
 
 //------------------------------------------------------------------------------
 // main()
@@ -88,6 +97,9 @@ void main(void)
         // Wait for incoming character
         __bis_SR_register(LPM0_bits);
         
+        
+        setRow(0, rxBuffer);
+        /* Insert real code for LED matrix
         // Update board outputs according to received byte
         if (rxBuffer & 0x01) P1OUT |= 0x01; else P1OUT &= ~0x01;    // P1.0
         if (rxBuffer & 0x02) P1OUT |= 0x08; else P1OUT &= ~0x08;    // P1.3
@@ -97,7 +109,8 @@ void main(void)
         if (rxBuffer & 0x20) P1OUT |= 0x80; else P1OUT &= ~0x80;    // P1.7
         if (rxBuffer & 0x40) P2OUT |= 0x40; else P2OUT &= ~0x40;    // P2.6
         if (rxBuffer & 0x80) P2OUT |= 0x80; else P2OUT &= ~0x80;    // P2.7
-        
+       	*/
+       	
         // Echo received character
         TimerA_UART_tx(rxBuffer);
     }
@@ -190,4 +203,127 @@ __interrupt void Timer_A1_ISR(void)
             break;
     }
 }
-//------------------------------------------------------------------------------
+//--------------------------------Adding code from other example-------------------------------
+ 
+// Delays by the specified Milliseconds
+// thanks to:
+// http://www.threadabort.com/archive/2010/09/05/msp430-delay-function-like-the-arduino.aspx
+void delay(unsigned int ms)
+{
+ while (ms--)
+    {
+        __delay_cycles(1000); // set for 16Mhz change it to 1000 for 1 Mhz
+    }
+}
+ 
+// Writes a value to the specified bitmask/pin. Use built in defines
+// when calling this, as the shiftOut() function does.
+// All nonzero values are treated as "high" and zero is "low"
+void pinWrite( unsigned int bit, unsigned int val )
+{
+  if (val){
+    P1OUT |= bit;
+  } else {
+    P1OUT &= ~bit;
+  }
+}
+
+ 
+// Pulse the clock pin
+void pulseClock( void )
+{
+  P1OUT |= CLOCK;
+  P1OUT ^= CLOCK;
+ 
+}
+ 
+// Take the given 16-bit value and shift it out, LSB to MSB
+void shiftOut(unsigned int val)
+{
+  //Set latch to low (should be already)
+  //P1OUT &= ~LATCH;
+ 
+  char i;
+ 
+  // Iterate over each bit, set data pin, and pulse the clock to send it
+  // to the shift register
+  for (i = 0; i < 16; i++)  {
+      pinWrite(DATA, (val & (1 << i)));
+      pulseClock();
+  }
+ 
+  // Pulse the latch pin to write the values into the storage register
+  P1OUT |= LATCH;
+  P1OUT &= ~LATCH;
+}
+ 
+// These functions are just a shortcut to turn on and off the array of
+// LED's when you have the enable pin tied to the MCU. Entirely optional.
+void enable( void )
+{
+  P1OUT &= ~ENABLE;
+}
+ 
+void disable( void )
+{
+  P1OUT |= ENABLE;
+}
+
+void setRows(unsigned int row, unsigned int value)
+{
+	shiftOut(0x0000);	
+	if(row == 0)
+	{
+		P1OUT &= ~(ROW0 + ROW1 + ROW2);
+		
+	}
+	else if(row == 1)
+	{
+		P1OUT &= ~(ROW1 + ROW2);
+		P1OUT |= (ROW0);
+	}
+	else if(row == 2)
+	{
+		P1OUT &= ~(ROW0 + ROW2);
+		P1OUT |= (ROW1);	
+	}
+	else if(row == 3)
+	{
+		P1OUT &= ~(ROW2);
+		P1OUT |= (ROW0 + ROW1);	
+	}
+		else if(row == 4)
+	{
+		P1OUT &= ~(ROW0 + ROW1);
+		P1OUT |= (ROW2);	
+	}
+		else if(row == 5)
+	{
+		P1OUT &= ~(ROW1);
+		P1OUT |= (ROW2 + ROW0);	
+	}
+		else if(row == 6)
+	{
+		P1OUT &= ~(ROW0);
+		P1OUT |= (ROW2 + ROW1);	
+	}
+		else if(row == 7)
+	{
+		P1OUT |= (ROW2 + ROW1 + ROW0);	
+	}
+	else { }
+	shiftOut(value);
+}
+
+void setDisplay( char input) 
+{
+	buffer[0] = input;
+	/* make this right later
+	if(input = 'a') {
+		
+	}
+	else if(input = 'b') {
+		
+	}
+	*/
+}
