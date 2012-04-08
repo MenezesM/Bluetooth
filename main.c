@@ -39,6 +39,14 @@
 //------------------------------------------------------------------------------
 #define UART_TXD   0x02                     // TXD on P1.1 (Timer0_A.OUT0)
 #define UART_RXD   0x04                     // RXD on P1.2 (Timer0_A.CCI1A)
+//new pin declations
+#define DATA BIT0 // DS -> 1.0
+#define CLOCK BIT1 // SH_CP -> 1.1
+#define LATCH BIT2 // ST_CP -> 1.2
+#define ENABLE BIT3 // OE -> 1.3
+#define ROW0 BIT4 // ROW 1.4
+#define ROW1 BIT5 // ROW 1.5
+#define ROW2 BIT6 // ROW 1.6
 
 //------------------------------------------------------------------------------
 // Conditions for 9600 Baud SW UART, SMCLK = 1MHz
@@ -66,7 +74,7 @@ void shiftOut(unsigned int );
 void enable(void);
 void disable(void);
 void setRows(unsigned int, unsigned int);
-void setDisplay(char) 
+void setDisplay(char) ;
 
 //------------------------------------------------------------------------------
 // main()
@@ -98,7 +106,7 @@ void main(void)
         __bis_SR_register(LPM0_bits);
         
         
-        setRow(0, rxBuffer);
+        setRows(0, rxBuffer);
         /* Insert real code for LED matrix
         // Update board outputs according to received byte
         if (rxBuffer & 0x01) P1OUT |= 0x01; else P1OUT &= ~0x01;    // P1.0
