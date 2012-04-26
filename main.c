@@ -37,16 +37,17 @@
 //------------------------------------------------------------------------------
 // Hardware-related definitions
 //------------------------------------------------------------------------------
-#define UART_TXD   0x02                     // TXD on P1.1 (Timer0_A.OUT0)
-#define UART_RXD   0x04                     // RXD on P1.2 (Timer0_A.CCI1A)
-//new pin declations
-#define DATA BIT0 // DS -> 1.0
-#define CLOCK BIT1 // SH_CP -> 1.1
-#define LATCH BIT2 // ST_CP -> 1.2
-#define ENABLE BIT3 // OE -> 1.3
-#define ROW0 BIT4 // ROW 1.4
-#define ROW1 BIT5 // ROW 1.5
-#define ROW2 BIT6 // ROW 1.6
+#define UART_TXD   BIT1                     // TXD on P1.1 (Timer0_A.OUT0)
+#define UART_RXD   BIT2                     // RXD on P1.2 (Timer0_A.CCI1A)
+//----------------------adding
+#define DATA BIT0 // Data -> 1.0
+#define CLOCK BIT3 // SH_CP -> 1.3
+#define LATCH BIT4 // ST_CP -> 1.4
+#define ENABLE BIT5 // OE -> 1.5
+#define ROW0 0x01 // ROW 1.4
+#define ROW1 0x02 // ROW 1.5
+#define ROW2 0x03 // ROW 1.6
+//----------------------
 
 //------------------------------------------------------------------------------
 // Conditions for 9600 Baud SW UART, SMCLK = 1MHz
@@ -59,7 +60,17 @@
 //------------------------------------------------------------------------------
 unsigned int txData;                        // UART internal variable for TX
 unsigned char rxBuffer;                     // Received UART character
-unsigned char buffer[8];					// Array of chars for output to led matrix
+unsigned int buffer[10];
+//------------Adding
+void delay ( unsigned int );
+void pulseClock ( void );
+void pinWrite ( unsigned int, unsigned int );
+void shiftOut ( unsigned int );
+void enable ( void );
+void disable ( void );
+void setRows( unsigned int, unsigned int);
+void print( char );
+//---------------
 
 //------------------------------------------------------------------------------
 // Function prototypes
@@ -67,14 +78,6 @@ unsigned char buffer[8];					// Array of chars for output to led matrix
 void TimerA_UART_init(void);
 void TimerA_UART_tx(unsigned char byte);
 void TimerA_UART_print(char *string);
-//================new prototypes==============
-void delay(unsigned int);
-void pulseClock( void );
-void shiftOut(unsigned int );
-void enable(void);
-void disable(void);
-void setRows(unsigned int, unsigned int);
-void setDisplay(char) ;
 
 //------------------------------------------------------------------------------
 // main()
@@ -99,16 +102,16 @@ void main(void)
     TimerA_UART_init();                     // Start Timer_A UART
     TimerA_UART_print("G2xx1 TimerA UART\r\n");
     TimerA_UART_print("READY.\r\n");
-    
+    enable();
     for (;;)
     {
         // Wait for incoming character
         __bis_SR_register(LPM0_bits);
-        
-        
-        setRows(0, rxBuffer);
-        /* Insert real code for LED matrix
+        //print();
+		//setRows(0, buffer[0]);   
+		shiftOut(rxBuffer);
         // Update board outputs according to received byte
+        /*
         if (rxBuffer & 0x01) P1OUT |= 0x01; else P1OUT &= ~0x01;    // P1.0
         if (rxBuffer & 0x02) P1OUT |= 0x08; else P1OUT &= ~0x08;    // P1.3
         if (rxBuffer & 0x04) P1OUT |= 0x10; else P1OUT &= ~0x10;    // P1.4
@@ -117,8 +120,7 @@ void main(void)
         if (rxBuffer & 0x20) P1OUT |= 0x80; else P1OUT &= ~0x80;    // P1.7
         if (rxBuffer & 0x40) P2OUT |= 0x40; else P2OUT &= ~0x40;    // P2.6
         if (rxBuffer & 0x80) P2OUT |= 0x80; else P2OUT &= ~0x80;    // P2.7
-       	*/
-       	
+        */
         // Echo received character
         TimerA_UART_tx(rxBuffer);
     }
@@ -211,11 +213,7 @@ __interrupt void Timer_A1_ISR(void)
             break;
     }
 }
-//--------------------------------Adding code from other example-------------------------------
- 
-// Delays by the specified Milliseconds
-// thanks to:
-// http://www.threadabort.com/archive/2010/09/05/msp430-delay-function-like-the-arduino.aspx
+//------------------------Adding
 void delay(unsigned int ms)
 {
  while (ms--)
@@ -241,6 +239,7 @@ void pinWrite( unsigned int bit, unsigned int val )
 void pulseClock( void )
 {
   P1OUT |= CLOCK;
+  delay(10);
   P1OUT ^= CLOCK;
  
 }
@@ -282,56 +281,56 @@ void setRows(unsigned int row, unsigned int value)
 	shiftOut(0x0000);	
 	if(row == 0)
 	{
-		P1OUT &= ~(ROW0 + ROW1 + ROW2);
+		P2OUT &= ~(ROW0 + ROW1 + ROW2);
 		
 	}
 	else if(row == 1)
 	{
-		P1OUT &= ~(ROW1 + ROW2);
-		P1OUT |= (ROW0);
+		P2OUT &= ~(ROW1 + ROW2);
+		P2OUT |= (ROW0);
 	}
 	else if(row == 2)
 	{
-		P1OUT &= ~(ROW0 + ROW2);
-		P1OUT |= (ROW1);	
+		P2OUT &= ~(ROW0 + ROW2);
+		P2OUT |= (ROW1);	
 	}
 	else if(row == 3)
 	{
-		P1OUT &= ~(ROW2);
-		P1OUT |= (ROW0 + ROW1);	
+		P2OUT &= ~(ROW2);
+		P2OUT |= (ROW0 + ROW1);	
 	}
 		else if(row == 4)
 	{
-		P1OUT &= ~(ROW0 + ROW1);
-		P1OUT |= (ROW2);	
+		P2OUT &= ~(ROW0 + ROW1);
+		P2OUT |= (ROW2);	
 	}
 		else if(row == 5)
 	{
-		P1OUT &= ~(ROW1);
-		P1OUT |= (ROW2 + ROW0);	
+		P2OUT &= ~(ROW1);
+		P2OUT |= (ROW2 + ROW0);	
 	}
 		else if(row == 6)
 	{
-		P1OUT &= ~(ROW0);
-		P1OUT |= (ROW2 + ROW1);	
+		P2OUT &= ~(ROW0);
+		P2OUT |= (ROW2 + ROW1);	
 	}
 		else if(row == 7)
 	{
-		P1OUT |= (ROW2 + ROW1 + ROW0);	
+		P2OUT |= (ROW2 + ROW1 + ROW0);	
 	}
 	else { }
 	shiftOut(value);
 }
-
-void setDisplay( char input) 
+void print(char c) 
 {
-	buffer[0] = input;
-	/* make this right later
-	if(input = 'a') {
-		
-	}
-	else if(input = 'b') {
-		
-	}
-	*/
+	buffer[0] = 127;
+  	buffer[1] = 8;
+  	buffer[2] = 8;
+  	buffer[3] = 8;
+  	buffer[4] = 127;
+  	buffer[5] = 0;
+  	buffer[6] = 127;
+  	buffer[7] = 73;
 }
+//------------------------------------
+//------------------------------------------------------------------------------
